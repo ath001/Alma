@@ -15,7 +15,7 @@ Expects the backend running locally at `http://localhost:8010` (see `../backend/
 ## Structure
 
 - `src/app/page.tsx` — public lead-submission form (`src/components/lead-form.tsx`), submits to the backend's `POST /api/v1/leads` and shows loading/success/error state.
-- `src/app/internal/` — internal section, **not auth-guarded yet** (`internal/layout.tsx` has a TODO where real auth plugs in), with the leads list at `internal/leads/` rendering `GET /api/v1/leads` as a table (name, email, resume download link, state, submitted date).
-- `src/lib/api-client.ts` — the only place that knows the backend base URL / fetch conventions (`getHealth`, `createLead`, `getLeads`).
+- `src/app/internal/` — internal section, **not auth-guarded yet** (`internal/layout.tsx` has a TODO where real auth plugs in), with the leads list at `internal/leads/` rendering `GET /api/v1/leads` as a table (name, email, resume download link, state, submitted date, and a "Reach out" button on `PENDING` rows). The button is a native `<form action={...}>` calling a Server Action (`internal/leads/actions.ts`) that hits `POST /api/v1/leads/{id}/reach-out` and revalidates the page — no client-side state needed.
+- `src/lib/api-client.ts` — the only place that knows the backend base URL / fetch conventions (`getHealth`, `createLead`, `getLeads`, `markLeadReachedOut`).
 
-Not implemented yet: real auth, and a "mark reached out" action in the internal UI (the backend endpoint exists — `POST /api/v1/leads/{id}/reach-out` — just not wired to a button).
+Not implemented yet: real auth.

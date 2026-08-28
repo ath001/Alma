@@ -22,6 +22,8 @@ jobs:
             python -c "import psycopg; psycopg.connect('postgresql://postgres:postgres@127.0.0.1:5432/postgres')" 2>/dev/null && break
             sleep 1
           done
+      - run: alembic upgrade head
+        working-directory: backend
       - run: ruff check .
         working-directory: backend
       - run: pytest

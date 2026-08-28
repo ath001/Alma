@@ -57,3 +57,12 @@ export async function getLeads(): Promise<Lead[]> {
   }
   return res.json();
 }
+
+export async function markLeadReachedOut(id: string): Promise<Lead> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/leads/${id}/reach-out`, { method: "POST" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail ?? `Failed to mark lead reached out: ${res.status}`);
+  }
+  return res.json();
+}

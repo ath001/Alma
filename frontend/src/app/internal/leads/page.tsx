@@ -1,5 +1,7 @@
 import { getLeads, type Lead } from "@/lib/api-client";
 
+import { reachOutAction } from "./actions";
+
 function StateBadge({ state }: { state: Lead["state"] }) {
   const styles =
     state === "REACHED_OUT"
@@ -12,8 +14,7 @@ function StateBadge({ state }: { state: Lead["state"] }) {
   );
 }
 
-// TODO: guard this page with auth (see internal/layout.tsx) and add a
-// "mark reached out" action wired to POST /api/v1/leads/{id}/reach-out.
+// TODO: guard this page with auth (see internal/layout.tsx).
 export default async function LeadsPage() {
   const leads = await getLeads().catch(() => null);
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
@@ -57,6 +58,9 @@ export default async function LeadsPage() {
                 <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide text-gray-500">
                   Submitted
                 </th>
+                <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide text-gray-500">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -79,6 +83,21 @@ export default async function LeadsPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {new Date(lead.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {lead.state === "PENDING" ? (
+                      <form action={reachOutAction}>
+                        <input type="hidden" name="leadId" value={lead.id} />
+                        <button
+                          type="submit"
+                          className="text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded px-2.5 py-1"
+                        >
+                          Reach out
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="text-sm text-gray-300">—</span>
+                    )}
                   </td>
                 </tr>
               ))}

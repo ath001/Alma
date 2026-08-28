@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([frontend/](frontend/)), each self-contained with their own dependency manifest and README. Current state: minimal but real, running skeletons only —
 
 - **backend/**: `/api/v1/health` + `/api/v1/health/db`, and a working Lead feature — `POST /api/v1/leads` (create, multipart with resume upload), `GET /api/v1/leads` (list, deliberately unauthenticated for now), `POST /api/v1/leads/{id}/reach-out` (PENDING → REACHED_OUT), `GET /api/v1/leads/{id}/resume` (download). Resumes are stored in Postgres (`lead_resumes` table) behind a `StorageBackend` interface (`app/services/storage.py`) so switching to S3 later is one class + a setting flip, not a rewrite. Email sending is a no-op stub (`app/services/notifications.py`). See [backend/README.md](backend/README.md).
-- **frontend/**: real public lead-form (`/`) that submits to `POST /api/v1/leads` (loading/success/error states, `lib/api-client.ts`'s `createLead`), and a real internal leads list (`/internal/leads`) that renders `GET /api/v1/leads` as a table with a resume download link — but **still unauthenticated**, same TODO in `internal/layout.tsx` as before. No "mark reached out" action wired up yet. See [frontend/README.md](frontend/README.md).
+- **frontend/**: real public lead-form (`/`) that submits to `POST /api/v1/leads` (loading/success/error states, `lib/api-client.ts`'s `createLead`), and a real internal leads list (`/internal/leads`) that renders `GET /api/v1/leads` as a table with a resume download link and a "Reach out" button (`internal/leads/actions.ts`, a Server Action calling `POST /api/v1/leads/{id}/reach-out` and revalidating the page) on `PENDING` rows — but **still unauthenticated**, same TODO in `internal/layout.tsx` as before. See [frontend/README.md](frontend/README.md).
 
-**Not yet built**: email service integration, real auth for `/internal` (and the matching backend endpoints), a "mark reached out" action in the internal UI, `docker-compose.yml`.
+**Not yet built**: email service integration, real auth for `/internal` (and the matching backend endpoints), `docker-compose.yml`.
 
 ## What this project is meant to become
 
@@ -32,6 +32,10 @@ Postgres for local dev runs via [pg0-embedded](https://pypi.org/project/pg0-embe
 - `python scripts/run_db.py [--port 5432]` starts it in the foreground, printing the connection URI; Ctrl+C stops it cleanly. Data lives in `.pg0data/` (gitignored) — delete that folder to reset the DB.
 - `python scripts/stop_db.py [--port 5432]` force-stops it if it was ever left running after a non-graceful kill of `run_db.py`.
 - Default port is 5432; pass `--port` to both scripts together to run on another port if 5432 is already taken by something else.
+
+## Secrets and PII
+
+See [SECURITY.md](SECURITY.md). In short: never commit secrets (API keys, tokens, passwords, real connection strings, private keys, `.env` files) or real lead PII (names, emails, phone numbers, resumes), and check the staged diff before every commit.
 
 ## Changelog
 
