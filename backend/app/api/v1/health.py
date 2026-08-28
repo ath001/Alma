@@ -1,15 +1,10 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import DbSession
 from app.schemas.health import DbHealthStatus, HealthStatus
 
 router = APIRouter(tags=["health"])
-
-DbSession = Annotated[Session, Depends(get_db)]
 
 
 @router.get("/health", response_model=HealthStatus)

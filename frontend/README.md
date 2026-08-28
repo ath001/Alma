@@ -14,8 +14,8 @@ Expects the backend running locally at `http://localhost:8010` (see `../backend/
 
 ## Structure
 
-- `src/app/page.tsx` — public lead-submission form (`src/components/lead-form.tsx`).
-- `src/app/internal/` — auth-guarded internal section (`internal/layout.tsx` has a TODO where real auth plugs in) with the leads list at `internal/leads/`.
-- `src/lib/api-client.ts` — the only place that knows the backend base URL / fetch conventions.
+- `src/app/page.tsx` — public lead-submission form (`src/components/lead-form.tsx`), submits to the backend's `POST /api/v1/leads` and shows loading/success/error state.
+- `src/app/internal/` — internal section, **not auth-guarded yet** (`internal/layout.tsx` has a TODO where real auth plugs in), with the leads list at `internal/leads/` rendering `GET /api/v1/leads` as a table (name, email, resume download link, state, submitted date).
+- `src/lib/api-client.ts` — the only place that knows the backend base URL / fetch conventions (`getHealth`, `createLead`, `getLeads`).
 
-Lead CRUD, real form submission, and auth are not implemented yet — see the TODO comments in the code.
+Not implemented yet: real auth, and a "mark reached out" action in the internal UI (the backend endpoint exists — `POST /api/v1/leads/{id}/reach-out` — just not wired to a button).

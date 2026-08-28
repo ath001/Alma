@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([frontend/](frontend/)), each self-contained with their own dependency manifest and README. Current state: minimal but real, running skeletons only —
 
-- **backend/**: `/api/v1/health` and `/api/v1/health/db` endpoints, DB session wired to the local Postgres, Alembic set up with zero real migrations, one pytest test. See [backend/README.md](backend/README.md).
-- **frontend/**: placeholder public lead-form page (`/`, no submit logic yet) and placeholder auth-guarded internal leads list (`/internal/leads`, no real auth yet — TODO in `internal/layout.tsx`), with a live fetch of the backend's `/health` proving the cross-origin wiring works. See [frontend/README.md](frontend/README.md).
+- **backend/**: `/api/v1/health` + `/api/v1/health/db`, and a working Lead feature — `POST /api/v1/leads` (create, multipart with resume upload), `GET /api/v1/leads` (list, deliberately unauthenticated for now), `POST /api/v1/leads/{id}/reach-out` (PENDING → REACHED_OUT), `GET /api/v1/leads/{id}/resume` (download). Resumes are stored in Postgres (`lead_resumes` table) behind a `StorageBackend` interface (`app/services/storage.py`) so switching to S3 later is one class + a setting flip, not a rewrite. Email sending is a no-op stub (`app/services/notifications.py`). See [backend/README.md](backend/README.md).
+- **frontend/**: real public lead-form (`/`) that submits to `POST /api/v1/leads` (loading/success/error states, `lib/api-client.ts`'s `createLead`), and a real internal leads list (`/internal/leads`) that renders `GET /api/v1/leads` as a table with a resume download link — but **still unauthenticated**, same TODO in `internal/layout.tsx` as before. No "mark reached out" action wired up yet. See [frontend/README.md](frontend/README.md).
 
-**Not yet built** (deliberately out of scope so far): the Lead model/schema/CRUD endpoints, email service integration, real auth for `/internal`, real form submission, `docker-compose.yml`. See the plan this structure was built from: `given-properly-structure-the-synthetic-rose.md` in the user's Claude plans directory, if it's still needed for reference.
+**Not yet built**: email service integration, real auth for `/internal` (and the matching backend endpoints), a "mark reached out" action in the internal UI, `docker-compose.yml`.
 
 ## What this project is meant to become
 
@@ -40,3 +40,7 @@ Whenever you make a commit that changes code, add an entry to [CHANGELOG.md](CHA
 ## Conversation log
 
 Keep [CONVERSATION_LOG.md](CONVERSATION_LOG.md) up to date: at the end of a session (or after a meaningful chunk of work), append a brief dated summary of what was asked and what was done. It's a summary log, not a full transcript — keep entries short.
+
+## Decisions
+
+[DECISIONS.md](DECISIONS.md) is the topical (not chronological) reference for *why* the codebase looks the way it does: key architectural decisions and their tradeoffs, real bugs found and fixed, and known limitations. When you make a non-obvious design choice, reject an alternative for a real reason, or hunt down a non-trivial bug, add it there — not just to CONVERSATION_LOG.md (which is the session narrative) or CHANGELOG.md (which is the what-changed list).
