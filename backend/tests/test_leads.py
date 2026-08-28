@@ -52,57 +52,74 @@ def test_create_lead_rejects_oversized_file(client: TestClient, monkeypatch) -> 
         get_settings.cache_clear()
 
 
-def test_list_leads_includes_created_lead(client: TestClient) -> None:
+def test_list_leads_requires_auth(client: TestClient) -> None:
+    response = client.get("/api/v1/leads")
+    assert response.status_code == 401
+
+
+def test_list_leads_includes_created_lead(client: TestClient, auth_headers: dict) -> None:
     created = _create_lead(client, email="grace@example.com").json()
-    listed = client.get("/api/v1/leads").json()
+    listed = client.get("/api/v1/leads", headers=auth_headers).json()
     assert created["id"] in [lead["id"] for lead in listed]
 
 
-def test_resume_download_round_trips_bytes(client: TestClient) -> None:
+def test_resume_download_requires_auth(client: TestClient) -> None:
+    created = _create_lead(client).json()
+    response = client.get(f"/api/v1/leads/{created['id']}/resume")
+    assert response.status_code == 401
+
+
+def test_resume_download_round_trips_bytes(client: TestClient, auth_headers: dict) -> None:
     content = b"%PDF-1.4 unique resume bytes for download test"
     created = _create_lead(
         client, files={"resume": ("resume.pdf", content, "application/pdf")}
     ).json()
-    response = client.get(f"/api/v1/leads/{created['id']}/resume")
+    response = client.get(f"/api/v1/leads/{created['id']}/resume", headers=auth_headers)
     assert response.status_code == 200
     assert response.content == content
     assert response.headers["content-type"] == "application/pdf"
     assert "resume.pdf" in response.headers["content-disposition"]
 
 
-def test_resume_download_round_trips_bytes_for_txt(client: TestClient) -> None:
+def test_resume_download_round_trips_bytes_for_txt(client: TestClient, auth_headers: dict) -> None:
     content = b"plain text resume, byte for byte"
     created = _create_lead(
         client, files={"resume": ("resume.txt", content, "text/plain")}
     ).json()
-    response = client.get(f"/api/v1/leads/{created['id']}/resume")
+    response = client.get(f"/api/v1/leads/{created['id']}/resume", headers=auth_headers)
     assert response.status_code == 200
     assert response.content == content
     assert response.headers["content-type"].startswith("text/plain")
     assert "resume.txt" in response.headers["content-disposition"]
 
 
-def test_resume_download_unknown_id_returns_404(client: TestClient) -> None:
-    response = client.get(f"/api/v1/leads/{uuid.uuid4()}/resume")
+def test_resume_download_unknown_id_returns_404(client: TestClient, auth_headers: dict) -> None:
+    response = client.get(f"/api/v1/leads/{uuid.uuid4()}/resume", headers=auth_headers)
     assert response.status_code == 404
 
 
-def test_reach_out_transitions_pending_to_reached_out(client: TestClient) -> None:
+def test_reach_out_requires_auth(client: TestClient) -> None:
     created = _create_lead(client).json()
     response = client.post(f"/api/v1/leads/{created['id']}/reach-out")
+    assert response.status_code == 401
+
+
+def test_reach_out_transitions_pending_to_reached_out(client: TestClient, auth_headers: dict) -> None:
+    created = _create_lead(client).json()
+    response = client.post(f"/api/v1/leads/{created['id']}/reach-out", headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
     assert body["state"] == "REACHED_OUT"
     assert body["reached_out_at"] is not None
 
 
-def test_reach_out_twice_returns_409(client: TestClient) -> None:
+def test_reach_out_twice_returns_409(client: TestClient, auth_headers: dict) -> None:
     created = _create_lead(client).json()
-    client.post(f"/api/v1/leads/{created['id']}/reach-out")
-    response = client.post(f"/api/v1/leads/{created['id']}/reach-out")
+    client.post(f"/api/v1/leads/{created['id']}/reach-out", headers=auth_headers)
+    response = client.post(f"/api/v1/leads/{created['id']}/reach-out", headers=auth_headers)
     assert response.status_code == 409
 
 
-def test_reach_out_unknown_id_returns_404(client: TestClient) -> None:
-    response = client.post(f"/api/v1/leads/{uuid.uuid4()}/reach-out")
+def test_reach_out_unknown_id_returns_404(client: TestClient, auth_headers: dict) -> None:
+    response = client.post(f"/api/v1/leads/{uuid.uuid4()}/reach-out", headers=auth_headers)
     assert response.status_code == 404

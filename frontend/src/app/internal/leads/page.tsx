@@ -1,4 +1,5 @@
 import { getLeads, type Lead } from "@/lib/api-client";
+import { getSessionToken } from "@/lib/session";
 
 import { reachOutAction } from "./actions";
 
@@ -14,10 +15,9 @@ function StateBadge({ state }: { state: Lead["state"] }) {
   );
 }
 
-// TODO: guard this page with auth (see internal/layout.tsx).
 export default async function LeadsPage() {
-  const leads = await getLeads().catch(() => null);
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
+  const token = (await getSessionToken())!; // internal/layout.tsx already guards this route
+  const leads = await getLeads(token).catch(() => null);
 
   return (
     <main className="flex flex-col gap-6 p-8 max-w-4xl mx-auto">
@@ -73,7 +73,7 @@ export default async function LeadsPage() {
                   <td className="px-4 py-3">
                     <a
                       className="text-blue-600 hover:underline"
-                      href={`${apiBaseUrl}${lead.resume_url}`}
+                      href={`/internal/leads/${lead.id}/resume`}
                     >
                       {lead.resume_filename}
                     </a>

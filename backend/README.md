@@ -21,11 +21,27 @@ Default port is 8010 (not the more commonly-taken 8000) to avoid clashing with o
 - `GET /api/v1/health` — liveness check.
 - `GET /api/v1/health/db` — proves DB connectivity (`SELECT 1` through the real session dependency).
 - `POST /api/v1/leads` — create a lead. `multipart/form-data`: `first_name`, `last_name`, `email`, `resume` (file, PDF/DOC/DOCX/TXT, ≤10MB by default). Public, no auth (per spec). Returns `201`.
-- `GET /api/v1/leads` — list all leads, newest first. **Unauthenticated for now** — real auth (attorney-only, per spec) isn't implemented yet; this is a known, deliberate gap, same as the frontend's `/internal` route.
-- `POST /api/v1/leads/{id}/reach-out` — transitions a lead from `PENDING` to `REACHED_OUT`. `404` if unknown, `409` if not currently `PENDING`.
-- `GET /api/v1/leads/{id}/resume` — downloads the resume file.
+- `GET /api/v1/leads` — list all leads, newest first. **Requires an attorney session.**
+- `POST /api/v1/leads/{id}/reach-out` — transitions a lead from `PENDING` to `REACHED_OUT`. **Requires an attorney session.** `404` if unknown, `409` if not currently `PENDING`.
+- `GET /api/v1/leads/{id}/resume` — downloads the resume file. **Requires an attorney session.**
 
 Resume files are stored in Postgres (`lead_resumes` table), not the filesystem — one piece of infra to run locally, and the blob commits atomically with the `Lead` row. Storage is behind a `StorageBackend` interface (`app/services/storage.py`); `Settings.resume_storage_backend` is the switch for moving to S3 later (currently only `"postgres"` is implemented — `"s3"` raises `NotImplementedError` as a marked seam).
+
+### Auth
+
+Two tables: `attorneys` (username + PBKDF2-HMAC-SHA256 password hash, stdlib `hashlib` — no new dependency) and `attorney_sessions` (opaque bearer token, `expires_at`, default TTL `Settings.session_ttl_hours` = 1 week). Protected endpoints depend on `CurrentAttorney` (`app/api/deps.py`), which reads `Authorization: Bearer <token>` and 401s if missing/invalid/expired.
+
+- `POST /api/v1/auth/login` — `{username, password}` → `{token, username}`.
+- `POST /api/v1/auth/logout` — invalidates the session server-side (not just "forget the token" client-side).
+- `GET /api/v1/auth/me` — `{username}` if the token is valid, else `401`.
+
+The first migration (`f3732c16dbe9_add_attorney_auth.py`) seeds one dummy account, **`admin` / `admin`**, using the real `hash_password()` function so it can never drift from the verify logic. This is meant to be replaced/supplemented, not a permanent credential — add real attorneys with:
+
+```
+python scripts/create_attorney.py <username> <password>
+```
+
+(omit `<password>` to be prompted instead of passing it on the command line, which would otherwise land in shell history).
 
 ### Email
 
@@ -52,4 +68,4 @@ alembic upgrade head
 
 `alembic/env.py` is wired to `app.config.Settings.database_url` and `app.models.Base.metadata` — no separate config needed.
 
-Real auth is not implemented yet. Lead model/CRUD and email notifications are done — see above.
+Lead model/CRUD, email notifications, and attorney auth are done — see above.

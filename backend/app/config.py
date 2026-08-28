@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     # Used to build the "view this lead" link in the attorney's email.
     frontend_base_url: str = "http://localhost:3000"
 
+    # Attorney auth. Session tokens are opaque, stored in attorney_sessions,
+    # sent as `Authorization: Bearer <token>`.
+    session_ttl_hours: int = 24 * 7
+
 
 @lru_cache
 def get_settings() -> Settings:

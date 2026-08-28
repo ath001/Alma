@@ -16,6 +16,7 @@ Do not commit sensitive material to the repository, in code, config, tests, fixt
   - Locally submitted leads live in `.pg0data/` (gitignored) — keep it that way.
   - Never drive state-mutating tests against whatever rows happen to be in the local DB; create disposable synthetic leads (see [DECISIONS.md](DECISIONS.md) debugging log).
 - **Real credentials must never reach the test suite.** `backend/tests/conftest.py` has an autouse fixture that forces `SMTP_USERNAME`/`SMTP_PASSWORD` empty for every test, regardless of what's in a developer's local `backend/.env` — so filling in a real Gmail App Password for actual app usage can't cause `pytest` to send real emails through it. This matters generally: any credential added to `.env` for real usage needs a corresponding test-isolation check, not just a `.gitignore` entry.
+- **Attorney passwords**: never log or print a plain-text password. `backend/scripts/create_attorney.py` accepts a password as a CLI arg for scripting convenience, but prefer omitting it (it'll prompt via `getpass`, hidden input) since CLI args land in shell history.
 
 ### Before every commit
 
@@ -43,9 +44,12 @@ These are deliberate scope boundaries with seams in the code, not accidental hol
 
 | Area | Status |
 | --- | --- |
-| Auth for `/internal` UI | **None.** TODO in `frontend/src/app/internal/layout.tsx`. |
-| Auth for `GET /api/v1/leads` and `POST /api/v1/leads/{id}/reach-out` | **None.** Endpoints are publicly reachable. |
+| Auth for `/internal` UI | Real session-cookie auth (`frontend/src/app/internal/layout.tsx` + `/login`). Passwords hashed with PBKDF2-HMAC-SHA256 (stdlib), never stored/logged in plain text. |
+| Auth for `GET /api/v1/leads`, `POST /api/v1/leads/{id}/reach-out`, `GET /api/v1/leads/{id}/resume` | Requires a valid `Authorization: Bearer` session token (`app.api.deps.CurrentAttorney`). |
+| Seeded `admin`/`admin` account | **Intentional placeholder, not a real credential to guard** — created by the first auth migration so the app is usable out of the box. Must be replaced (or supplemented with real accounts via `backend/scripts/create_attorney.py` and the admin account's password changed/disabled) before any real deployment. |
 | `POST /api/v1/leads` (public form) | Intentionally unauthenticated. Lead IDs are UUIDs so submission volume can't be inferred and resume URLs aren't guessable. |
+| Session tokens | Opaque, `secrets.token_urlsafe(32)`, stored server-side in `attorney_sessions` with `expires_at` (default 1 week); `POST /api/v1/auth/logout` deletes the row (real invalidation, not just "the client forgets it"). |
+| Session token transport | httpOnly cookie set by a Next.js Server Action, never exposed to browser JS; forwarded to the backend only by Next.js server-side code (Server Components/Actions, a Route Handler proxy for resume downloads) as `Authorization: Bearer`. |
 | Resume upload validation | Content-type is client-supplied, not magic-byte sniffed — spoofable. Size capped (`resume_max_size_mb`, default 10). |
 | CORS | Explicit allow-list from `Settings.cors_origins` (not `*`). |
 | Transport | Local dev is plain HTTP. TLS is a deployment concern. |

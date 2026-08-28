@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([frontend/](frontend/)), each self-contained with their own dependency manifest and README. Current state: minimal but real, running skeletons only —
+Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([frontend/](frontend/)), each self-contained with their own dependency manifest and README. All three required pieces from `project.txt` are built —
 
-- **backend/**: `/api/v1/health` + `/api/v1/health/db`, and a working Lead feature — `POST /api/v1/leads` (create, multipart with resume upload), `GET /api/v1/leads` (list, deliberately unauthenticated for now), `POST /api/v1/leads/{id}/reach-out` (PENDING → REACHED_OUT), `GET /api/v1/leads/{id}/resume` (download). Resumes are stored in Postgres (`lead_resumes` table) behind a `StorageBackend` interface (`app/services/storage.py`) so switching to S3 later is one class + a setting flip, not a rewrite. Lead creation emails the prospect and the attorney via plain SMTP (`app/services/notifications.py`, stdlib `smtplib` — no SES/SendGrid needed); no-op (logged) if SMTP isn't configured. See [backend/README.md](backend/README.md).
-- **frontend/**: real public lead-form (`/`) that submits to `POST /api/v1/leads` (loading/success/error states, `lib/api-client.ts`'s `createLead`), and a real internal leads list (`/internal/leads`) that renders `GET /api/v1/leads` as a table with a resume download link and a "Reach out" button (`internal/leads/actions.ts`, a Server Action calling `POST /api/v1/leads/{id}/reach-out` and revalidating the page) on `PENDING` rows — but **still unauthenticated**, same TODO in `internal/layout.tsx` as before. See [frontend/README.md](frontend/README.md).
+- **backend/**: `/api/v1/health` + `/api/v1/health/db`; Lead feature — `POST /api/v1/leads` (create, multipart with resume upload, public), `GET /api/v1/leads` (list), `POST /api/v1/leads/{id}/reach-out` (PENDING → REACHED_OUT), `GET /api/v1/leads/{id}/resume` (download) — the latter three now require an attorney session. Resumes are stored in Postgres (`lead_resumes` table) behind a `StorageBackend` interface (`app/services/storage.py`) so switching to S3 later is one class + a setting flip. Lead creation emails the prospect and the attorney via plain SMTP (`app/services/notifications.py`, stdlib `smtplib`); no-op (logged) if SMTP isn't configured. Auth — `attorneys`/`attorney_sessions` tables, PBKDF2 password hashing (stdlib), opaque bearer tokens; `POST/GET /api/v1/auth/{login,logout,me}`; seeded with a dummy `admin`/`admin` account, more addable via `scripts/create_attorney.py`. See [backend/README.md](backend/README.md).
+- **frontend/**: real public lead-form (`/`) that submits to `POST /api/v1/leads`, and a real, **auth-guarded** internal leads list (`/internal/leads`) with a resume download link and a "Reach out" button. `/login` page + Server Action sets an httpOnly session cookie; `internal/layout.tsx` validates it against the backend and redirects to `/login` if invalid; every authenticated backend call happens server-side (Server Components/Actions/a Route Handler proxy for resume downloads) — the browser never holds the token. See [frontend/README.md](frontend/README.md).
 
-**Not yet built**: real auth for `/internal` (and the matching backend endpoints), `docker-compose.yml`.
+**Not yet built**: `docker-compose.yml`. Everything the assignment asked for is done; remaining ideas are polish (real "add attorney" UI instead of a CLI script, password reset).
 
 ## What this project is meant to become
 
@@ -21,8 +21,6 @@ Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([
 - Each lead has a state: starts `PENDING`, transitions to `REACHED_OUT` when an attorney manually marks it after reaching out.
 - Required stack: **FastAPI** for the API, **Next.js** for the web app, a persistence layer, and an email service integration.
 - Code should be structured like a production-level repo (not a toy layout).
-
-Architectural decisions still open: auth mechanism for `/internal`. Check with the user before committing to one if it isn't already specified elsewhere in the conversation.
 
 ## Local database
 

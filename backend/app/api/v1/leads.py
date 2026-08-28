@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from pydantic import EmailStr
 
-from app.api.deps import DbSession
+from app.api.deps import CurrentAttorney, DbSession
 from app.config import get_settings
 from app.models.lead import Lead, LeadState
 from app.schemas.lead import LeadRead, lead_to_read
@@ -59,16 +59,13 @@ async def create_lead(
 
 
 @router.get("", response_model=list[LeadRead])
-def list_leads(db: DbSession) -> list[LeadRead]:
-    # TODO: guard with auth once a mechanism is chosen — mirrors the
-    # frontend's existing gap (frontend/src/app/internal/layout.tsx).
-    # Unauthenticated by design for this pass.
+def list_leads(db: DbSession, current_attorney: CurrentAttorney) -> list[LeadRead]:
     leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
     return [lead_to_read(lead) for lead in leads]
 
 
 @router.post("/{lead_id}/reach-out", response_model=LeadRead)
-def mark_reached_out(lead_id: uuid.UUID, db: DbSession) -> LeadRead:
+def mark_reached_out(lead_id: uuid.UUID, db: DbSession, current_attorney: CurrentAttorney) -> LeadRead:
     lead = db.get(Lead, lead_id)
     if lead is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found")
@@ -86,6 +83,7 @@ def mark_reached_out(lead_id: uuid.UUID, db: DbSession) -> LeadRead:
 def download_resume(
     lead_id: uuid.UUID,
     db: DbSession,
+    current_attorney: CurrentAttorney,
     storage: Annotated[StorageBackend, Depends(get_storage_backend)],
 ) -> Response:
     lead = db.get(Lead, lead_id)

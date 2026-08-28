@@ -25,3 +25,13 @@ def _no_real_smtp(monkeypatch: pytest.MonkeyPatch):
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def auth_headers(client: TestClient) -> dict[str, str]:
+    """Logs in as the seeded admin/admin attorney (see the Alembic migration
+    that creates it) and returns an Authorization header for protected
+    endpoints."""
+    response = client.post("/api/v1/auth/login", json={"username": "admin", "password": "admin"})
+    token = response.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
