@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This repository is currently an empty scaffold. The only code present is [main.py](main.py), a placeholder entry point (`python main.py` prints a greeting). No backend, frontend, dependency manifests, build tooling, linters, or tests have been set up yet.
+Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([frontend/](frontend/)), each self-contained with their own dependency manifest and README. Current state: minimal but real, running skeletons only —
+
+- **backend/**: `/api/v1/health` and `/api/v1/health/db` endpoints, DB session wired to the local Postgres, Alembic set up with zero real migrations, one pytest test. See [backend/README.md](backend/README.md).
+- **frontend/**: placeholder public lead-form page (`/`, no submit logic yet) and placeholder auth-guarded internal leads list (`/internal/leads`, no real auth yet — TODO in `internal/layout.tsx`), with a live fetch of the backend's `/health` proving the cross-origin wiring works. See [frontend/README.md](frontend/README.md).
+
+**Not yet built** (deliberately out of scope so far): the Lead model/schema/CRUD endpoints, email service integration, real auth for `/internal`, real form submission, `docker-compose.yml`. See the plan this structure was built from: `given-properly-structure-the-synthetic-rose.md` in the user's Claude plans directory, if it's still needed for reference.
 
 ## What this project is meant to become
 
@@ -15,9 +20,9 @@ This repository is currently an empty scaffold. The only code present is [main.p
 - An internal, auth-guarded UI lists leads with all submitted details.
 - Each lead has a state: starts `PENDING`, transitions to `REACHED_OUT` when an attorney manually marks it after reaching out.
 - Required stack: **FastAPI** for the API, **Next.js** for the web app, a persistence layer, and an email service integration.
-- Code should be structured like a production-level repo (not a toy layout) — expect a proper split between the FastAPI backend and the Next.js frontend as those are added.
+- Code should be structured like a production-level repo (not a toy layout).
 
-Since none of this exists yet, treat architectural decisions (repo layout, email provider, auth approach) as open — check with the user before committing to one if it isn't already specified elsewhere in the conversation.
+Architectural decisions still open: email provider, auth mechanism for `/internal`. Check with the user before committing to one if it isn't already specified elsewhere in the conversation.
 
 ## Local database
 

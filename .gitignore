@@ -1,3 +1,20 @@
 .claude/settings.local.json
 .venv/
 .pg0data/
+
+# backend
+backend/.venv/
+**/__pycache__/
+*.pyc
+backend/.env
+backend/.pytest_cache/
+backend/.ruff_cache/
+
+# frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/out/
+
+# misc
+*.log

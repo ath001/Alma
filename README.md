@@ -2,15 +2,53 @@
 
 GitHub: https://github.com/ath001/Alma
 
-See [project.txt](project.txt) for the project assignment and [CLAUDE.md](CLAUDE.md) for repo guidance.
+Lead intake app: a public form for prospects, an auth-guarded internal UI for attorneys. See [project.txt](project.txt) for the full assignment and [CLAUDE.md](CLAUDE.md) for repo guidance.
 
-## Local database
+Monorepo: [backend/](backend/) (FastAPI) and [frontend/](frontend/) (Next.js), plus shared local-dev tooling at the root.
+
+**Current state**: minimal runnable skeletons — a placeholder public lead form and an unauthenticated placeholder internal leads list, wired end-to-end to a real backend and database. Lead CRUD, email sending, and real auth aren't built yet.
+
+## Run the whole app locally
+
+Three terminals, run in order (each stays open/running):
+
+**1. Database** (from the repo root):
 
 ```
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts/run_db.py        # starts Postgres locally, prints the connection URI
+python scripts/run_db.py
 ```
 
-No system Postgres or Docker install needed — see [CLAUDE.md](CLAUDE.md#local-database) for details, including how to run on a different port or stop it.
+**2. Backend** (new terminal):
+
+```
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e ".[dev]"
+copy .env.example .env
+uvicorn app.main:app --reload --port 8010
+```
+
+**3. Frontend** (new terminal):
+
+```
+cd frontend
+npm install
+copy .env.local.example .env.local
+npm run dev
+```
+
+Then open **http://localhost:3000** — you should see "Backend status: ok" and the lead-submission form. The internal leads list is at **http://localhost:3000/internal/leads**.
+
+The backend defaults to port 8010 (not 8000) since 8000 is commonly taken by other local dev tools. If 8010 is taken too, run the backend with a different `--port` and update `NEXT_PUBLIC_API_BASE_URL` in `frontend/.env.local` to match before starting the frontend.
+
+To stop: Ctrl+C each terminal (frontend, then backend), then Ctrl+C the DB terminal (or run `python scripts/stop_db.py` from the root if it's ever left running).
+
+## Details
+
+- [Local database](CLAUDE.md#local-database) — how it works, custom ports, resetting data.
+- [backend/README.md](backend/README.md) — endpoints, tests, migrations.
+- [frontend/README.md](frontend/README.md) — structure, what's stubbed vs. real.

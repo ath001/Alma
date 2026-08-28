@@ -1,1 +1,3 @@
+# Root-level dev tooling only (scripts/run_db.py, stop_db.py) — NOT backend app
+# dependencies. See backend/pyproject.toml for those.
 pg0-embedded
