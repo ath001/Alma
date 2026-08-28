@@ -38,19 +38,19 @@ Two tables: `attorneys` (username + PBKDF2-HMAC-SHA256 password hash, stdlib `ha
 - `POST /api/v1/auth/logout` — invalidates the session server-side (not just "forget the token" client-side).
 - `GET /api/v1/auth/me` — `{username}` if the token is valid, else `401`.
 
-The first migration (`f3732c16dbe9_add_attorney_auth.py`) seeds one dummy account, **`admin` / `admin`**, using the real `hash_password()` function so it can never drift from the verify logic — but only when `SEED_DEV_ADMIN=true` (set in `.env.example`/local dev, and in CI). It's **off by default** so a real deployment can't get this account just by running `alembic upgrade head`; the seed is a no-op otherwise. This account is meant to be replaced/supplemented, not a permanent credential — add real attorneys with:
+The first migration (`f3732c16dbe9_add_attorney_auth.py`) seeds one dummy account, **`admin` / `admin`**, using the real `hash_password()` function so it can never drift from the verify logic — but only when `SEED_DEV_ADMIN=true` (set in `.env.example`/local dev, and in CI). It's **off by default** so a real deployment can't get this account just by running `alembic upgrade head`; the seed is a no-op otherwise. A later migration also gives that seeded account an email (`SEED_DEV_ADMIN_EMAIL`, same gate) — see Email below for what that's for. This account is meant to be replaced/supplemented, not a permanent credential — add real attorneys with:
 
 ```
-python scripts/create_attorney.py <username> <password>
+python scripts/create_attorney.py <username> --email <email> [--password <password>]
 ```
 
-(omit `<password>` to be prompted instead of passing it on the command line, which would otherwise land in shell history).
+(omit `--password` to be prompted instead of passing it on the command line, which would otherwise land in shell history). `--email` is optional but required for that attorney to actually receive lead-created notifications (see Email below) — an attorney with no email just doesn't get emailed, same as SMTP being unconfigured entirely.
 
 ### Email
 
-`app/services/notifications.py` emails the prospect a confirmation and the attorney a new-lead alert (with the resume filename and a "View lead" link to `{frontend_base_url}/internal/leads`), via plain SMTP (`smtplib`, stdlib — no new dependency). Both are `multipart/alternative` (plain text + HTML). If `SMTP_USERNAME`/`SMTP_PASSWORD` aren't set, sending is skipped (logged, not an error) — the app runs fine with no email configured.
+`app/services/notifications.py` emails the prospect a confirmation, and separately emails **every attorney that has an email on file** (`Attorney.email`, queried fresh each time — not a static config value) a new-lead alert with the resume filename and a "View lead" link to `{frontend_base_url}/internal/leads`. Both are `multipart/alternative` (plain text + HTML), sent via plain SMTP (`smtplib`, stdlib — no new dependency). If `SMTP_USERNAME`/`SMTP_PASSWORD` aren't set, sending is skipped (logged, not an error); if no attorney has an email set, that's logged too and nothing is sent to anyone internal — either way the app runs fine.
 
-To actually send: in `.env`, set `SMTP_USERNAME`/`SMTP_PASSWORD` to a Gmail account + an [App Password](https://myaccount.google.com/apppasswords) (requires 2-Step Verification enabled first — not your normal Gmail password), and `ATTORNEY_EMAIL` to wherever the internal alert should go — any address works, including a plus-addressed one on your own account (`you+attorney@gmail.com`) if you want a fake-but-checkable inbox. No SES/SendGrid/etc. account needed. If a test email doesn't show up, check Spam and search (not just browse) for the recipient address — Gmail's spam filtering can treat a plus-addressed variant differently even though delivery succeeds identically at the protocol level.
+To actually send: in `.env`, set `SMTP_USERNAME`/`SMTP_PASSWORD` to a Gmail account + an [App Password](https://myaccount.google.com/apppasswords) (requires 2-Step Verification enabled first — not your normal Gmail password), and give at least one attorney an email — either `SEED_DEV_ADMIN_EMAIL` for the seeded dummy account, or `--email` on `scripts/create_attorney.py` for a real one. Any address works, including a plus-addressed one on your own account (`you+attorney@gmail.com`) if you want a fake-but-checkable inbox. No SES/SendGrid/etc. account needed. If a test email doesn't show up, check Spam and search (not just browse) for the recipient address — Gmail's spam filtering can treat a plus-addressed variant differently even though delivery succeeds identically at the protocol level.
 
 **Never enable `smtplib`'s `set_debuglevel(1)` (or similar raw protocol logging) while real credentials are configured** — it prints the base64-encoded `AUTH PLAIN` line, which trivially decodes back to the username and password.
 

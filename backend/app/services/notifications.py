@@ -2,7 +2,10 @@ import logging
 import smtplib
 from email.message import EmailMessage
 
+from sqlalchemy.orm import Session
+
 from app.config import get_settings
+from app.models.attorney import Attorney
 from app.models.lead import Lead
 
 logger = logging.getLogger(__name__)
@@ -41,8 +44,9 @@ def _wrap_html(inner: str) -> str:
     )
 
 
-def notify_lead_created(lead: Lead) -> None:
-    """Emails the prospect a confirmation and the attorney a new-lead alert."""
+def notify_lead_created(lead: Lead, db: Session) -> None:
+    """Emails the prospect a confirmation and every attorney with an email
+    on file a new-lead alert."""
     settings = get_settings()
     full_name = f"{lead.first_name} {lead.last_name}"
 
@@ -67,28 +71,35 @@ def notify_lead_created(lead: Lead) -> None:
     )
 
     dashboard_url = f"{settings.frontend_base_url}/internal/leads"
-    _send_email(
-        to=settings.attorney_email,
-        subject=f"New lead: {full_name}",
-        text_body=(
-            f"A new lead was submitted.\n\n"
-            f"Name: {full_name}\n"
-            f"Email: {lead.email}\n"
-            f"Resume: {lead.resume_filename}\n"
-            f"Submitted: {lead.created_at:%b %d, %Y at %I:%M %p UTC}\n\n"
-            f"View and manage this lead: {dashboard_url}"
-        ),
-        html_body=_wrap_html(
-            "<p>A new lead was submitted.</p>"
-            '<table style="border-collapse: collapse;">'
-            f'<tr><td style="padding: 2px 12px 2px 0; color: #6b7280;">Name</td><td>{full_name}</td></tr>'
-            f'<tr><td style="padding: 2px 12px 2px 0; color: #6b7280;">Email</td><td>{lead.email}</td></tr>'
-            f'<tr><td style="padding: 2px 12px 2px 0; color: #6b7280;">Resume</td><td>{lead.resume_filename}</td></tr>'
-            f'<tr><td style="padding: 2px 12px 2px 0; color: #6b7280;">Submitted</td>'
-            f"<td>{lead.created_at:%b %d, %Y at %I:%M %p UTC}</td></tr>"
-            "</table>"
-            f'<p style="margin-top: 20px;"><a href="{dashboard_url}" '
-            'style="background: #111827; color: #fff; padding: 8px 16px; '
-            'border-radius: 6px; text-decoration: none;">View lead</a></p>'
-        ),
-    )
+    attorney_emails = [
+        email for (email,) in db.query(Attorney.email).filter(Attorney.email.isnot(None)).all()
+    ]
+    if not attorney_emails:
+        logger.warning("No attorney has an email on file; skipping new-lead notification")
+
+    for attorney_email in attorney_emails:
+        _send_email(
+            to=attorney_email,
+            subject=f"New lead: {full_name}",
+            text_body=(
+                f"A new lead was submitted.\n\n"
+                f"Name: {full_name}\n"
+                f"Email: {lead.email}\n"
+                f"Resume: {lead.resume_filename}\n"
+                f"Submitted: {lead.created_at:%b %d, %Y at %I:%M %p UTC}\n\n"
+                f"View and manage this lead: {dashboard_url}"
+            ),
+            html_body=_wrap_html(
+                "<p>A new lead was submitted.</p>"
+                '<table style="border-collapse: collapse;">'
+                f'<tr><td style="padding: 2px 12px 2px 0; color: #6b7280;">Name</td><td>{full_name}</td></tr>'
+                f'<tr><td style="padding: 2px 12px 2px 0; color: #6b7280;">Email</td><td>{lead.email}</td></tr>'
+                f'<tr><td style="padding: 2px 12px 2px 0; color: #6b7280;">Resume</td><td>{lead.resume_filename}</td></tr>'
+                f'<tr><td style="padding: 2px 12px 2px 0; color: #6b7280;">Submitted</td>'
+                f"<td>{lead.created_at:%b %d, %Y at %I:%M %p UTC}</td></tr>"
+                "</table>"
+                f'<p style="margin-top: 20px;"><a href="{dashboard_url}" '
+                'style="background: #111827; color: #fff; padding: 8px 16px; '
+                'border-radius: 6px; text-decoration: none;">View lead</a></p>'
+            ),
+        )

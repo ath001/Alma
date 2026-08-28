@@ -15,6 +15,10 @@ class Attorney(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Nullable: an attorney without an email just doesn't receive
+    # lead-created notifications (see app/services/notifications.py) — same
+    # "optional, graceful" shape as SMTP being unconfigured entirely.
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

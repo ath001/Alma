@@ -52,8 +52,7 @@ async def create_lead(
     db.commit()
     db.refresh(lead)
 
-    # Out of scope for now — see app/services/notifications.py.
-    notify_lead_created(lead)
+    notify_lead_created(lead, db)
 
     return lead_to_read(lead)
 
