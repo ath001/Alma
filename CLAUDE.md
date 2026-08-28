@@ -17,7 +17,16 @@ This repository is currently an empty scaffold. The only code present is [main.p
 - Required stack: **FastAPI** for the API, **Next.js** for the web app, a persistence layer, and an email service integration.
 - Code should be structured like a production-level repo (not a toy layout) — expect a proper split between the FastAPI backend and the Next.js frontend as those are added.
 
-Since none of this exists yet, treat architectural decisions (repo layout, DB choice, email provider, auth approach) as open — check with the user before committing to one if it isn't already specified elsewhere in the conversation.
+Since none of this exists yet, treat architectural decisions (repo layout, email provider, auth approach) as open — check with the user before committing to one if it isn't already specified elsewhere in the conversation.
+
+## Local database
+
+Postgres for local dev runs via [pg0-embedded](https://pypi.org/project/pg0-embedded/) — no system install or Docker needed; it downloads and manages real Postgres binaries itself. This is a dev/test convenience chosen because nothing else was installed on this machine at the time; a more production-representative setup (managed Postgres, Docker, etc.) is expected later.
+
+- `pip install -r requirements.txt` (inside a venv, e.g. `.venv/`) to get `pg0-embedded`.
+- `python scripts/run_db.py [--port 5432]` starts it in the foreground, printing the connection URI; Ctrl+C stops it cleanly. Data lives in `.pg0data/` (gitignored) — delete that folder to reset the DB.
+- `python scripts/stop_db.py [--port 5432]` force-stops it if it was ever left running after a non-graceful kill of `run_db.py`.
+- Default port is 5432; pass `--port` to both scripts together to run on another port if 5432 is already taken by something else.
 
 ## Changelog
 
