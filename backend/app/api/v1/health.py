@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -7,6 +9,8 @@ from app.schemas.health import DbHealthStatus, HealthStatus
 
 router = APIRouter(tags=["health"])
 
+DbSession = Annotated[Session, Depends(get_db)]
+
 
 @router.get("/health", response_model=HealthStatus)
 def health() -> HealthStatus:
@@ -14,6 +18,6 @@ def health() -> HealthStatus:
 
 
 @router.get("/health/db", response_model=DbHealthStatus)
-def health_db(db: Session = Depends(get_db)) -> DbHealthStatus:
+def health_db(db: DbSession) -> DbHealthStatus:
     db.execute(text("SELECT 1"))
     return DbHealthStatus(status="ok", database="reachable")
