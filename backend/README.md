@@ -13,8 +13,11 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -e ".[dev]"
 cp .env.example .env
+alembic upgrade head
 uvicorn app.main:app --reload --port 8010
 ```
+
+`alembic upgrade head` is required before the app is actually usable — it creates every table (`leads`, `attorneys`, etc.) and, via `SEED_DEV_ADMIN=true` (already set in `.env.example`), seeds the dummy `admin`/`admin` attorney account. Skipping it leaves the server running but every request that touches the DB fails with `relation "..." does not exist`.
 
 Default port is 8010 (not the more commonly-taken 8000) to avoid clashing with other local dev tools.
 
@@ -57,7 +60,7 @@ To actually send: in `.env`, set `SMTP_USERNAME`/`SMTP_PASSWORD` to a Gmail acco
 pytest
 ```
 
-Runs against the real local Postgres (not SQLite), same as dev, to avoid dialect-mismatch bugs.
+Runs against the real local Postgres (not SQLite), same as dev, to avoid dialect-mismatch bugs — so `alembic upgrade head` must have been run first (see Quickstart above).
 
 ## Migrations
 

@@ -29,8 +29,11 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -e ".[dev]"
 copy .env.example .env
+alembic upgrade head
 uvicorn app.main:app --reload --port 8010
 ```
+
+`alembic upgrade head` creates the tables and — via `SEED_DEV_ADMIN=true`, already set in `.env.example` — seeds the dummy `admin`/`admin` attorney account used below. Skipping this step means the app starts fine but every lead/auth request fails with a "relation does not exist" error.
 
 Submitting a lead sends two emails (prospect + attorney) via SMTP — optional for local dev (skipped/logged if unconfigured). To actually send them, fill in `SMTP_USERNAME`/`SMTP_PASSWORD` in `backend/.env`; see [backend/README.md](backend/README.md#email) for the 2-minute Gmail App Password setup (no SES/SendGrid account needed).
 

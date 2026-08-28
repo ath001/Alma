@@ -27,7 +27,7 @@ Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([
 Postgres for local dev runs via [pg0-embedded](https://pypi.org/project/pg0-embedded/) — no system install or Docker needed; it downloads and manages real Postgres binaries itself. This is a dev/test convenience chosen because nothing else was installed on this machine at the time; a more production-representative setup (managed Postgres, Docker, etc.) is expected later.
 
 - `pip install -r requirements.txt` (inside a venv, e.g. `.venv/`) to get `pg0-embedded`.
-- `python scripts/run_db.py [--port 5432]` starts it in the foreground, printing the connection URI; Ctrl+C stops it cleanly. Data lives in `.pg0data/` (gitignored) — delete that folder to reset the DB.
+- `python scripts/run_db.py [--port 5432]` starts it in the foreground, printing the connection URI; Ctrl+C stops it cleanly. Data lives in `.pg0data/` (gitignored) — delete that folder to reset the DB. After deleting it, re-run `cd backend && alembic upgrade head` before starting the app again — a reset DB has no tables (and no seeded `admin`/`admin` account) until migrations are reapplied.
 - `python scripts/stop_db.py [--port 5432]` force-stops it if it was ever left running after a non-graceful kill of `run_db.py`.
 - Default port is 5432; pass `--port` to both scripts together to run on another port if 5432 is already taken by something else.
 
