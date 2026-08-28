@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([frontend/](frontend/)), each self-contained with their own dependency manifest and README. Current state: minimal but real, running skeletons only —
 
-- **backend/**: `/api/v1/health` + `/api/v1/health/db`, and a working Lead feature — `POST /api/v1/leads` (create, multipart with resume upload), `GET /api/v1/leads` (list, deliberately unauthenticated for now), `POST /api/v1/leads/{id}/reach-out` (PENDING → REACHED_OUT), `GET /api/v1/leads/{id}/resume` (download). Resumes are stored in Postgres (`lead_resumes` table) behind a `StorageBackend` interface (`app/services/storage.py`) so switching to S3 later is one class + a setting flip, not a rewrite. Email sending is a no-op stub (`app/services/notifications.py`). See [backend/README.md](backend/README.md).
+- **backend/**: `/api/v1/health` + `/api/v1/health/db`, and a working Lead feature — `POST /api/v1/leads` (create, multipart with resume upload), `GET /api/v1/leads` (list, deliberately unauthenticated for now), `POST /api/v1/leads/{id}/reach-out` (PENDING → REACHED_OUT), `GET /api/v1/leads/{id}/resume` (download). Resumes are stored in Postgres (`lead_resumes` table) behind a `StorageBackend` interface (`app/services/storage.py`) so switching to S3 later is one class + a setting flip, not a rewrite. Lead creation emails the prospect and the attorney via plain SMTP (`app/services/notifications.py`, stdlib `smtplib` — no SES/SendGrid needed); no-op (logged) if SMTP isn't configured. See [backend/README.md](backend/README.md).
 - **frontend/**: real public lead-form (`/`) that submits to `POST /api/v1/leads` (loading/success/error states, `lib/api-client.ts`'s `createLead`), and a real internal leads list (`/internal/leads`) that renders `GET /api/v1/leads` as a table with a resume download link and a "Reach out" button (`internal/leads/actions.ts`, a Server Action calling `POST /api/v1/leads/{id}/reach-out` and revalidating the page) on `PENDING` rows — but **still unauthenticated**, same TODO in `internal/layout.tsx` as before. See [frontend/README.md](frontend/README.md).
 
-**Not yet built**: email service integration, real auth for `/internal` (and the matching backend endpoints), `docker-compose.yml`.
+**Not yet built**: real auth for `/internal` (and the matching backend endpoints), `docker-compose.yml`.
 
 ## What this project is meant to become
 
@@ -22,7 +22,7 @@ Monorepo with a FastAPI backend ([backend/](backend/)) and a Next.js frontend ([
 - Required stack: **FastAPI** for the API, **Next.js** for the web app, a persistence layer, and an email service integration.
 - Code should be structured like a production-level repo (not a toy layout).
 
-Architectural decisions still open: email provider, auth mechanism for `/internal`. Check with the user before committing to one if it isn't already specified elsewhere in the conversation.
+Architectural decisions still open: auth mechanism for `/internal`. Check with the user before committing to one if it isn't already specified elsewhere in the conversation.
 
 ## Local database
 

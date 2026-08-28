@@ -32,6 +32,8 @@ copy .env.example .env
 uvicorn app.main:app --reload --port 8010
 ```
 
+Submitting a lead sends two emails (prospect + attorney) via SMTP — optional for local dev (skipped/logged if unconfigured). To actually send them, fill in `SMTP_USERNAME`/`SMTP_PASSWORD` in `backend/.env`; see [backend/README.md](backend/README.md#email) for the 2-minute Gmail App Password setup (no SES/SendGrid account needed).
+
 **3. Frontend** (new terminal):
 
 ```

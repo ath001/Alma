@@ -15,6 +15,7 @@ Do not commit sensitive material to the repository, in code, config, tests, fixt
   - Tests and fixtures must use obviously-fake data (e.g. `Ada Lovelace`, `ada@example.com`).
   - Locally submitted leads live in `.pg0data/` (gitignored) — keep it that way.
   - Never drive state-mutating tests against whatever rows happen to be in the local DB; create disposable synthetic leads (see [DECISIONS.md](DECISIONS.md) debugging log).
+- **Real credentials must never reach the test suite.** `backend/tests/conftest.py` has an autouse fixture that forces `SMTP_USERNAME`/`SMTP_PASSWORD` empty for every test, regardless of what's in a developer's local `backend/.env` — so filling in a real Gmail App Password for actual app usage can't cause `pytest` to send real emails through it. This matters generally: any credential added to `.env` for real usage needs a corresponding test-isolation check, not just a `.gitignore` entry.
 
 ### Before every commit
 
@@ -34,6 +35,7 @@ If something sensitive was already committed, tell the repo owner — rotating t
 ### Last scan
 
 Full repo scan (tracked files, working tree, all `.env` files, complete git history) on **2026-08-28**: no secrets or real PII found. Only the local-dev Postgres placeholder above, and synthetic test data.
+
 
 ## Current security posture (assignment-stage)
 
