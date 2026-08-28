@@ -24,6 +24,8 @@ jobs:
           done
       - run: alembic upgrade head
         working-directory: backend
+        env:
+          SEED_DEV_ADMIN: "true"
       - run: ruff check .
         working-directory: backend
       - run: pytest

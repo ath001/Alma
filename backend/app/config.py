@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # sent as `Authorization: Bearer <token>`.
     session_ttl_hours: int = 24 * 7
 
+    # Off by default so a real deployment can't accidentally get a dummy
+    # admin/admin account just by running migrations — must be explicitly
+    # opted into (local dev, CI). See the auth migration's upgrade().
+    seed_dev_admin: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:

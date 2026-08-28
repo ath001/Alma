@@ -11,6 +11,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 
 from alembic import op
+from app.config import get_settings
 from app.services.auth import hash_password
 
 # revision identifiers, used by Alembic.
@@ -42,25 +43,26 @@ def upgrade() -> None:
     op.create_index(op.f('ix_attorney_sessions_attorney_id'), 'attorney_sessions', ['attorney_id'], unique=False)
     # ### end Alembic commands ###
 
-    # Seed a dummy admin/admin attorney so auth works out of the box.
-    # Real attorneys can be added later with scripts/create_attorney.py —
-    # this row isn't special beyond being first.
-    attorneys = sa.table(
-        'attorneys',
-        sa.column('id', sa.UUID()),
-        sa.column('username', sa.String()),
-        sa.column('password_hash', sa.String()),
-    )
-    op.bulk_insert(
-        attorneys,
-        [
-            {
-                'id': uuid.uuid4(),
-                'username': 'admin',
-                'password_hash': hash_password('admin'),
-            }
-        ],
-    )
+    # Seed a dummy admin/admin attorney so auth works out of the box —
+    # but only when explicitly opted into (local dev, CI). Off by default
+    # so a real deployment can't get this account just by migrating.
+    if get_settings().seed_dev_admin:
+        attorneys = sa.table(
+            'attorneys',
+            sa.column('id', sa.UUID()),
+            sa.column('username', sa.String()),
+            sa.column('password_hash', sa.String()),
+        )
+        op.bulk_insert(
+            attorneys,
+            [
+                {
+                    'id': uuid.uuid4(),
+                    'username': 'admin',
+                    'password_hash': hash_password('admin'),
+                }
+            ],
+        )
 
 
 def downgrade() -> None:
